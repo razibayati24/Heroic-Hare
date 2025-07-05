@@ -35,12 +35,12 @@ from pydantic import BaseModel
 #You can find the ID in the URL of the genie room /genie/rooms/<GENIE_SPACE_ID>
 #In lieu of the locally scoped variable for the PAT, we'll use the one from our secrets store for security.
 
-GENIE_SPACE_ID_1 = "01f026a703761605b18fa1d904cf1a64"
-genie_agent_description_1 = "This genie agent can answer any questions around billing and Databricks or AWS related expenses associated with the account. It is assumed that all relevant billing data is included in this agent."
+GENIE_SPACE_ID_1 = "01f0591c6afb142eba0a9e49eef46a39"
+genie_agent_description_1 = "This genie agent can answer any questions related to customer service calls, including details such as call ID, customer ID, agent handling the call, date and time of the call, the topic discussed, whether the call was answered and resolved, speed of answer, average talk duration, and customer satisfaction ratings"
 
 genie_agent_1 = GenieAgent(
     genie_space_id=GENIE_SPACE_ID_1,
-    genie_agent_name="Genie_DBX_Cost",
+    genie_agent_name="call_center_genie_room",
     description=genie_agent_description_1,
     client=WorkspaceClient(
         host=os.getenv("DB_MODEL_SERVING_HOST_URL"),
@@ -49,12 +49,12 @@ genie_agent_1 = GenieAgent(
     ),
 )
 
-GENIE_SPACE_ID_2 = "01f02ad494421be2953d3e5ba3818319"
-genie_agent_description_2 = "This genie agent can answer any questions concerning hotels, hotel rates and preferences of employees for the hotels."
+GENIE_SPACE_ID_2 = "01f0591c7e2e194499359b16c756ee37"
+genie_agent_description_2 = "This genie agent can answer any questions concerning customer demographic and service usage data, including information such as customer ID, gender, senior citizen status, various service subscriptions (internet, phone services), tenure, billing details, and churn status."
 
 genie_agent_2 = GenieAgent(
     genie_space_id=GENIE_SPACE_ID_2,
-    genie_agent_name="Genie_DBX_Hotel",
+    genie_agent_name="user_contract_genie_room",
     description=genie_agent_description_2,
     client=WorkspaceClient(
         host=os.getenv("DB_MODEL_SERVING_HOST_URL"),
@@ -62,7 +62,7 @@ genie_agent_2 = GenieAgent(
         #token=secret,
     ),
 )
-
+'''
 GENIE_SPACE_ID_3 = "01f02ad431cb12a9a93030fac014b105"
 genie_agent_description_3 = "This genie agent can answer any questions concerning employees and employee data. This includes things like name, salaray, job, date of birth (dob) and location."
 
@@ -76,6 +76,7 @@ genie_agent_3 = GenieAgent(
         #token=secret,
     ),
 )
+'''
 #Multi-agent Genie works best with claude 3.7 or gpt 4o models. Both of these are served using the system.ai.* databricks-uc namespace.
 LLM_ENDPOINT_NAME = "databricks-claude-3-7-sonnet"
 llm = ChatDatabricks(endpoint=LLM_ENDPOINT_NAME)
@@ -103,9 +104,9 @@ MAX_ITERATIONS = 5
 
 #Add the description for each agent we're going to use as a dictionary
 worker_descriptions = {
-    "Genie_DBX_Billing": genie_agent_description_1,
-    "Genie_DBX_Hotel": genie_agent_description_2,
-    "Genie_DBX_Employee": genie_agent_description_3,
+    "call_center_genie_room": genie_agent_description_1,
+    "user_contract_genie_room": genie_agent_description_2,
+    #"Genie_DBX_Employee": genie_agent_description_3,
     "Coder": code_agent_description,
 }
 
@@ -175,15 +176,15 @@ class AgentState(ChatAgentState):
 
 #Use a functools wrapper to build out the actual agent objects based on their descriptors
 code_node = functools.partial(agent_node, agent=code_agent, name="Coder")
-genie_node_1 = functools.partial(agent_node, agent=genie_agent_1, name="Genie_DBX_Billing")
-genie_node_2 = functools.partial(agent_node, agent=genie_agent_2, name="Genie_DBX_Hotel")
-genie_node_3 = functools.partial(agent_node, agent=genie_agent_3, name="Genie_DBX_Employee")
+genie_node_1 = functools.partial(agent_node, agent=genie_agent_1, name="call_center_genie_room")
+genie_node_2 = functools.partial(agent_node, agent=genie_agent_2, name="user_contract_genie_room")
+#genie_node_3 = functools.partial(agent_node, agent=genie_agent_3, name="Genie_DBX_Employee")
 
 #Build the graph from the nodes, including something to send a result back to whatever's invoking the application (aka final answer).
 workflow = StateGraph(AgentState)
-workflow.add_node("Genie_DBX_Billing", genie_node_1)
-workflow.add_node("Genie_DBX_Hotel", genie_node_2)
-workflow.add_node("Genie_DBX_Employee", genie_node_3)
+workflow.add_node("call_center_genie_room", genie_node_1)
+workflow.add_node("user_contract_genie_room", genie_node_2)
+#workflow.add_node("Genie_DBX_Employee", genie_node_3)
 workflow.add_node("Coder", code_node)
 workflow.add_node("supervisor", supervisor_agent)
 workflow.add_node("final_answer", final_answer)
